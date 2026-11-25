@@ -1,0 +1,62 @@
+# ── MP028 Cinema Show Occupancy ──────────────────────────────
+# Central configuration read by mp028.config.load_params()
+
+paths:
+  train_raw:    data/raw/train.csv
+  later_raw:    data/raw/later.csv
+  holdout:      data/raw/holdout_features.csv
+  model:        models/model.joblib
+  v1_model:     models/v1_model.joblib
+  v2_model:     models/v2_model.joblib
+  predictions:  predictions/holdout_predictions.csv
+  findings:     reports/findings.yaml
+  best_config:  reports/best_config.yaml
+
+mlflow:
+  tracking_uri:     "sqlite:///mlflow.db"
+  experiment:       mp028-occupancy
+  registered_model: mp028-occupancy
+
+data:
+  features:
+    - ticket_price_rs
+    - days_since_release
+    - star_rating
+    - show_hour
+    - screen_seats
+    - distance_to_metro_km
+    - language
+    - location
+  target: occupancy_pct
+
+model:
+  random_state: 42
+  test_size:    0.2
+  grid:
+    - name: ridge
+      hyperparams:
+        alpha: 1.0
+    - name: ridge
+      hyperparams:
+        alpha: 10.0
+    - name: random_forest
+      hyperparams:
+        n_estimators: 100
+        max_depth: 6
+    - name: random_forest
+      hyperparams:
+        n_estimators: 300
+        max_depth: null
+    - name: gradient_boosting
+      hyperparams:
+        learning_rate: 0.05
+        n_estimators: 200
+    - name: gradient_boosting
+      hyperparams:
+        learning_rate: 0.1
+        n_estimators: 100
+
+monitoring:
+  bins:                     10
+  retrain_fraction:         0.7
+  promote_min_improvement:  0.08

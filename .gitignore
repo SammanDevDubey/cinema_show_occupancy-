@@ -7,3 +7,4 @@ __pycache__/
 data/raw/train.csv
 data/raw/later.csv
 STUDENT_HANDBOOK.md
+data/processed/
