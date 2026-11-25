@@ -8,6 +8,9 @@
 import pandas as pd
 import numpy as np
 
+from mp028.config import load_params, REPO_ROOT
+from mp028.findings import update_findings
+
 
 # ── 1. Leaking column ───────────────────────────────────────
 def check_leaking_column(train_df: pd.DataFrame,
@@ -228,3 +231,94 @@ def run_all_checks(train_df: pd.DataFrame,
         "target_typos":      check_target_typos(train_df),
         "spelling_variants": check_spelling_variants(train_df, later_df),
     }
+
+
+def _longest_run(series: pd.Series) -> int:
+    """Return length of the longest consecutive identical-value run."""
+    vals = series.values
+    if len(vals) == 0:
+        return 0
+    best = cur = 1
+    for i in range(1, len(vals)):
+        if vals[i] == vals[i - 1]:
+            cur += 1
+            best = max(best, cur)
+        else:
+            cur = 1
+    return best
+
+
+def main() -> dict:
+    """Read raw CSVs, print evidence for all 7 checks, and update findings.yaml."""
+    params = load_params()
+    train_df = pd.read_csv(REPO_ROOT / params["paths"]["train_raw"])
+    later_df = pd.read_csv(REPO_ROOT / params["paths"]["later_raw"])
+    holdout_df = pd.read_csv(REPO_ROOT / params["paths"]["holdout"])
+    target = params["data"]["target"]
+
+    results = run_all_checks(train_df, later_df, holdout_df)
+
+    # 1. Leaking column evidence
+    extra_cols = sorted(set(train_df.columns) - set(holdout_df.columns) - {target})
+    print("=== 1. leaking_column ===")
+    print(f"Missing from holdout (excl. target): {extra_cols}")
+    for col in extra_cols:
+        if pd.api.types.is_numeric_dtype(train_df[col]):
+            corr = train_df[col].corr(train_df[target])
+            print(f"  corr({col}, {target}) = {corr:.4f}")
+            no_typos = train_df.drop_duplicates()
+            no_typos = no_typos[no_typos[target] <= 100]
+            corr_clean = no_typos[col].corr(no_typos[target])
+            print(f"  corr (typos and duplicates excluded) = {corr_clean:.4f}")
+    print("Result:", results["leaking_column"])
+
+    # 2. Unit mixup evidence
+    print("\n=== 2. unit_mixup ===")
+    num_cols = [c for c in train_df.select_dtypes(include="number").columns if c != target]
+    for col in num_cols:
+        stats = train_df.groupby("location")[col].agg(["min", "mean", "max"]).round(2)
+        print(f"  {col} by location:\n{stats.to_string()}")
+    print("Result:", results["unit_mixup"])
+
+    # 3. Sentinel value evidence
+    print("\n=== 3. sentinel_value ===")
+    for col in num_cols:
+        top3 = train_df[col].value_counts().head(3).to_dict()
+        print(f"  {col} top repeated: {top3}")
+    print("Result:", results["sentinel_value"])
+
+    # 4. Duplicate rows evidence
+    print("\n=== 4. duplicate_rows ===")
+    print(f"  df.duplicated().sum() = {int(train_df.duplicated().sum())}")
+    print("Result:", results["duplicate_rows"])
+
+    # 5. Stuck sensor evidence
+    print("\n=== 5. stuck_sensor ===")
+    sorted_df = train_df.sort_values("date").reset_index(drop=True)
+    for col in num_cols:
+        print(f"  {col} longest identical run: {_longest_run(sorted_df[col])}")
+    print("Result:", results["stuck_sensor"])
+
+    # 6. Target typos evidence
+    print("\n=== 6. target_typos ===")
+    top_targets = sorted(train_df[target].tolist(), reverse=True)[:12]
+    print(f"  Top 12 {target} values: {top_targets}")
+    if len(top_targets) > 1:
+        diffs = [round(top_targets[i] - top_targets[i + 1], 2) for i in range(len(top_targets) - 1)]
+        print(f"  Consecutive gaps: {diffs}")
+    print("Result:", results["target_typos"])
+
+    # 7. Spelling variants evidence
+    print("\n=== 7. spelling_variants ===")
+    for col in ["language", "location"]:
+        print(f"  {col} value_counts: {train_df[col].value_counts().to_dict()}")
+    print("Result:", results["spelling_variants"])
+
+    for kind, res in results.items():
+        update_findings(f"data_issues.{kind}", res)
+
+    return results
+
+
+if __name__ == "__main__":
+    main()

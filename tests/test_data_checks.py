@@ -175,3 +175,42 @@ def test_spelling_variants():
     assert set(res_clean.keys()) == {"present", "column", "true_levels"}
     assert res_clean["present"] is False
     assert res_clean["true_levels"] is None
+
+
+def test_main_output_structure(monkeypatch, capsys):
+    """Verify main() prints all 7 check sections and writes findings without reading CSVs."""
+    import mp028.data_checks as dc
+
+    train_df = pd.DataFrame({
+        "record_id": ["R1", "R2", "R3"],
+        "date": ["2026-01-01", "2026-01-02", "2026-01-03"],
+        "ticket_price_rs": [200, 300, 400],
+        "days_since_release": [5, 10, 15],
+        "star_rating": [3.5, 4.0, 4.5],
+        "show_hour": [12, 15, 18],
+        "screen_seats": [150, 200, 250],
+        "distance_to_metro_km": [1.5, 2.5, 3.5],
+        "language": ["hindi", "english", "regional"],
+        "location": ["Mall", "Highway", "City Centre"],
+        "tickets_scanned_pct": [60.0, 70.0, 80.0],
+        "occupancy_pct": [60.0, 70.0, 80.0],
+    })
+    later_df = train_df.copy()
+    holdout_df = train_df.drop(columns=["tickets_scanned_pct", "occupancy_pct"])
+
+    frames = iter([train_df, later_df, holdout_df])
+    monkeypatch.setattr(dc.pd, "read_csv", lambda *_a, **_kw: next(frames))
+
+    recorded = {}
+    monkeypatch.setattr(dc, "update_findings", lambda block, val: recorded.update({block: val}))
+
+    results = dc.main()
+    out = capsys.readouterr().out
+
+    for i, kind in enumerate([
+        "leaking_column", "unit_mixup", "sentinel_value",
+        "duplicate_rows", "stuck_sensor", "target_typos", "spelling_variants",
+    ], start=1):
+        assert f"=== {i}. {kind} ===" in out
+        assert f"data_issues.{kind}" in recorded
+        assert kind in results

@@ -1,50 +1,41 @@
-# MP028 findings --- fill in every value, keep every key.
-# The marking tool reads this file. Write null only where the comment says so.
-# Use the exact column names and group values from your data files.
-
-group_id: "G084"          # your group id, e.g. "G042"
-problem_id: "MP028"
-
+group_id: G084
+problem_id: MP028
 data_issues:
-  # For each of the 7 kinds: present: true or false.
-  # If present is false, leave the other values as null.
   leaking_column:
     present: true
-    column: tickets_scanned_pct           # the column that must not be used as a feature
+    column: tickets_scanned_pct
   unit_mixup:
     present: false
-    column: null           # the column recorded in a different unit
-    group_value: null      # the value of location whose rows are affected
-    factor: null           # wrong value = right value x factor
+    column: null
+    group_value: null
+    factor: null
   sentinel_value:
     present: true
     column: ticket_price_rs
-    value: 999             # the special number typed instead of a blank
-    count: 67              # how many rows have it
+    value: 999
+    count: 67
   duplicate_rows:
     present: true
-    count: 39              # number of EXTRA copies (rows you would delete)
+    count: 39
   stuck_sensor:
     present: false
     column: null
-    start_date: null       # first date with the stuck value, YYYY-MM-DD
-    end_date: null         # last date with the stuck value, YYYY-MM-DD
+    start_date: null
+    end_date: null
   target_typos:
     present: true
-    count: 8               # rows whose target was typed 10 times too big
+    count: 8
   spelling_variants:
     present: false
     column: null
-    true_levels: null      # how many real categories there are after cleaning
-
+    true_levels: null
 tracking:
   experiment_name: null
-  best_run_id: null        # the MLflow run id of your v1 model
+  best_run_id: null
   registered_model_name: null
   champion_version: null
-
 monitoring:
-  psi:                     # cleaned train.csv vs later.csv, 10 bins
+  psi:
     ticket_price_rs: null
     days_since_release: null
     star_rating: null
@@ -52,11 +43,11 @@ monitoring:
     screen_seats: null
     distance_to_metro_km: null
   most_drifted_feature: null
-  mae_by_group:            # v1 on later.csv, per value of location
-    'City Centre': null
-    'Mall': null
-    'Highway': null
+  mae_by_group:
+    City Centre: null
+    Mall: null
+    Highway: null
   worst_served_group: null
-  mae_v1_on_check: null    # v1 on the last 30% of later.csv (by date)
-  mae_v2_on_check: null    # v2 on the same rows
-  decision: null           # promote or keep
+  mae_v1_on_check: null
+  mae_v2_on_check: null
+  decision: null
