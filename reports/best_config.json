@@ -1,0 +1,13 @@
+
+{
+  "model": "ridge",
+  "hyperparams": {
+    "alpha": 1.0
+  },
+  "random_state": 42,
+  "validation_metrics": {
+    "r2": 0.929872,
+    "mae": 3.396437,
+    "rmse": 4.399022
+  }
+}
