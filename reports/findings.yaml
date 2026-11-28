@@ -30,10 +30,10 @@ data_issues:
     column: null
     true_levels: null
 tracking:
-  experiment_name: null
-  best_run_id: null
-  registered_model_name: null
-  champion_version: null
+  experiment_name: mp028-occupancy
+  best_run_id: c830cf29423946afa67a757af4397121
+  registered_model_name: mp028-occupancy
+  champion_version: 1
 monitoring:
   psi:
     ticket_price_rs: null
